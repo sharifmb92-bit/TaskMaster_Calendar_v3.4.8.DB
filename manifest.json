@@ -1,0 +1,60 @@
+{
+  "id": "com.medbasha.taskmaster.calendar.pro.v348",
+  "name": "TaskMaster Calendar Pro_v 3.4.8",
+  "short_name": "TaskMaster",
+  "description": "Gestor inteligente de tareas, eventos y notas con temas vinculados por perfil, voz avanzada y sello medbasha.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#23130d",
+  "theme_color": "#23130d",
+  "orientation": "portrait",
+  "dir": "ltr",
+  "lang": "es-ES",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Añadir Tarea",
+      "short_name": "Nueva Tarea",
+      "description": "Abrir gestor para crear una nueva tarea",
+      "url": "./index.html?action=new_task",
+      "icons": [
+        {
+          "src": "./icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Pantalla principal de TaskMaster Pro"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Vista de escritorio de TaskMaster Pro"
+    }
+  ]
+}
