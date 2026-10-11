@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>TaskMaster Calendar Pro_v 3.4.8</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#23130d">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TaskMaster">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+    <link rel="icon" href="./icon-192.png">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Dexie.js para IndexedDB -->
+    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+
+    <!-- Firebase SDK Compat -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+
+    <style>
+        .theme-cafe {
+            --bg-main: #23130d; --bg-card: #341e16; --bg-input: #1a0d08;
+            --text-main: #f8f1ed; --text-muted: #b8a398; --accent: #e5934a;
+            --card-shadow: rgba(0, 0, 0, 0.4);
+            --glass-bg: rgba(52, 30, 22, 0.78);
+            --glass-border: rgba(229, 147, 74, 0.35);
+        }
+        .theme-gris {
+            --bg-main: #141414; --bg-card: #222222; --bg-input: #0d0d0d;
+            --text-main: #ffffff; --text-muted: #aaaaaa; --accent: #a0a0a0;
+            --card-shadow: rgba(0, 0, 0, 0.5);
+            --glass-bg: rgba(34, 34, 34, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.25);
+        }
+        .theme-marino {
+            --bg-main: #0b1120; --bg-card: #162032; --bg-input: #060a12;
+            --text-main: #f1f5f9; --text-muted: #94a3b8; --accent: #38bdf8;
+            --card-shadow: rgba(0, 0, 0, 0.45);
+            --glass-bg: rgba(22, 32, 50, 0.8);
+            --glass-border: rgba(56, 189, 248, 0.35);
+        }
+        .theme-cream {
+            --bg-main: #f4efea; --bg-card: #ffffff; --bg-input: #e8dfd8;
+            --text-main: #2b1810; --text-muted: #5a4b43; --accent: #d97724;
+            --card-shadow: rgba(43, 24, 16, 0.08);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(217, 119, 36, 0.35);
+        }
+        .theme-menta {
+            --bg-main: #e8f5e9; --bg-card: #ffffff; --bg-input: #c8e6c9;
+            --text-main: #1b5e20; --text-muted: #38663b; --accent: #2e7d32;
+            --card-shadow: rgba(27, 94, 32, 0.08);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(46, 125, 50, 0.35);
+        }
+        .theme-cielo {
+            --bg-main: #e0f2fe; --bg-card: #ffffff; --bg-input: #bae6fd;
+            --text-main: #0369a1; --text-muted: #334155; --accent: #0284c7;
+            --card-shadow: rgba(3, 105, 161, 0.08);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(2, 132, 199, 0.35);
+        }
+
+        :root {
+            --color-high: #e54d42;
+            --color-medium: #e69138;
+            --color-low: #6bb05d;
+            --color-event: #38bdf8;
+            --color-task: #6bb05d;
+            --color-note: #e5934a;
+        }
+
+        * {
+            box-sizing: border-box; margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-main); color: var(--text-main);
+            display: flex; justify-content: center; min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            font-size: 16px;
+        }
+
+        .app-container {
+            width: 100%; max-width: 480px; background: var(--bg-card);
+            border-radius: 0; padding: 20px 20px 90px 20px; box-shadow: 0 16px 48px var(--card-shadow);
+            position: relative; overflow-y: auto; min-height: 100vh;
+        }
+
+        @media (min-width: 500px) {
+            body { padding: 16px; }
+            .app-container { border-radius: 28px; min-height: 92vh; max-height: 95vh; }
+        }
+
+        /* MEJORA EN EL CONTRASTE DEL GLASSMORPHISM */
+        body.glass-active .card,
+        body.glass-active .app-container,
+        body.glass-active .todo-item,
+        body.glass-active .event-card,
+        body.glass-active .modal-box-card {
+            background: var(--glass-bg) !important;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid var(--glass-border) !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+        }
+
+        body.glass-active label,
+        body.glass-active .profile-desc,
+        body.glass-active .event-desc-txt,
+        body.glass-active .text-muted {
+            color: var(--text-main) !important;
+            opacity: 0.9;
+        }
+
+        .screen { display: none; animation: slideIn 0.22s ease forwards; }
+        .screen.active { display: block; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+        }
+        .top-bar h1 { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.01em; color: var(--text-main); }
+        .top-bar-actions { display: flex; gap: 8px; }
+
+        .search-box { margin-bottom: 14px; position: relative; }
+        .search-box input { padding-left: 38px; font-size: 0.95rem; background: var(--bg-input); border-radius: 14px; }
+        .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); opacity: 0.6; font-size: 0.92rem; }
+
+        .progress-container {
+            background: var(--bg-input); border-radius: 16px; padding: 12px 14px; margin-bottom: 14px;
+            border: 1px solid rgba(128,128,128,0.1);
+        }
+        .progress-header { display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: 700; margin-bottom: 8px; }
+        .progress-bar-bg { background: rgba(128,128,128,0.15); height: 8px; border-radius: 10px; overflow: hidden; }
+        .progress-bar-fill { background: var(--color-task); height: 100%; width: 0%; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        .icon-btn {
+            background: var(--bg-input); border: 1px solid rgba(128,128,128,0.15);
+            color: var(--text-main); width: 42px; height: 42px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            font-size: 1.15rem; transition: transform 0.15s ease, background 0.15s ease;
+        }
+        .icon-btn:active { transform: scale(0.92); }
+
+        .status-banner {
+            font-size: 0.82rem; padding: 11px 14px; border-radius: 14px; margin-bottom: 14px;
+            background: var(--bg-input); color: var(--color-medium); text-align: center; cursor: pointer;
+            border: 1px dashed var(--color-medium); font-weight: 600;
+        }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 480px; background: var(--bg-input);
+            display: flex; justify-content: space-around; align-items: center;
+            padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+            border-top: 1px solid rgba(128,128,128,0.12); z-index: 9000;
+            backdrop-filter: blur(10px);
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            color: var(--text-muted); font-size: 0.78rem; font-weight: 600; cursor: pointer;
+            background: none; border: none; flex: 1; transition: color 0.15s ease, transform 0.1s ease;
+        }
+        .nav-item .nav-icon { font-size: 1.3rem; }
+        .nav-item.active { color: var(--accent); }
+        .nav-item:active { transform: scale(0.92); }
+
+        .fab-btn {
+            position: fixed; bottom: 78px; right: calc(50% - 215px);
+            width: 54px; height: 54px; border-radius: 50%; background: var(--accent);
+            color: #ffffff; border: none; font-size: 1.8rem; font-weight: 300;
+            display: none; align-items: center; justify-content: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35); cursor: pointer; z-index: 9500;
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        @media (max-width: 480px) { .fab-btn { right: 22px; } }
+        .fab-btn:active { transform: scale(0.9); }
+
+        .week-bar {
+            display: flex; justify-content: space-between; gap: 6px; margin-bottom: 16px;
+            background: var(--bg-input); padding: 10px; border-radius: 18px;
+        }
+        .week-day-chip {
+            flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+            padding: 8px 4px; border-radius: 14px; cursor: pointer; transition: background 0.15s, transform 0.1s;
+        }
+        .week-day-chip .day-name { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; }
+        .week-day-chip .day-num { font-size: 1rem; font-weight: 800; color: var(--text-main); }
+        .week-day-chip.active { background: var(--accent); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .week-day-chip.active .day-name, .week-day-chip.active .day-num { color: #ffffff; }
+        .week-day-chip.today-highlight:not(.active) { border: 1px solid var(--accent); }
+
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .nav-btn {
+            background: var(--bg-input); border: 1px solid rgba(128,128,128,0.12);
+            color: var(--text-main); font-size: 1.15rem; width: 38px; height: 38px;
+            border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .nav-btn:active { transform: scale(0.9); }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
+        .calendar-day-name { font-size: 0.78rem; color: var(--text-muted); font-weight: bold; padding-bottom: 6px; }
+
+        /* CELDAS DEL CALENDARIO REAJUSTADAS PARA MEJOR LECTURA */
+        .calendar-cell {
+            background: var(--bg-input); aspect-ratio: 1; border-radius: 12px;
+            display: flex; flex-direction: column; justify-content: flex-start; align-items: center;
+            padding-top: 4px; cursor: pointer; position: relative; transition: transform 0.12s ease; font-weight: 700;
+            font-size: 0.88rem;
+        }
+        .calendar-cell.empty { background: transparent; cursor: default; }
+        .calendar-cell:not(.empty):active { transform: scale(0.92); }
+        .calendar-cell.today { border: 2px solid var(--accent); }
+
+        /* INDICADORES DE EVENTO FINOS Y LIMPIOS */
+        .indicator-bar-container {
+            position: absolute; bottom: 3px; left: 4px; right: 4px;
+            display: flex; gap: 2px; height: 2px; border-radius: 2px; overflow: hidden;
+        }
+        .ind-bar { flex: 1; height: 100%; }
+
+        .note-dot-hint {
+            position: absolute; top: 3px; right: 3px; width: 5px; height: 5px;
+            border-radius: 50%; background-color: var(--color-note);
+        }
+
+        .card {
+            background: var(--bg-input); border-radius: 20px; padding: 16px 18px; margin-bottom: 16px;
+            border: 1px solid rgba(128,128,128,0.12); width: 100%; box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+        }
+        .card-title {
+            font-size: 0.82rem; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.05em; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+        }
+
+        .title-event { color: var(--color-event); }
+        .title-task { color: var(--color-task); }
+        .title-note { color: var(--color-note); }
+
+        .card-event { border-left: 4px solid var(--color-event); }
+        .card-task { border-left: 4px solid var(--color-task); }
+        .card-note { border-left: 4px solid var(--color-note); }
+
+        .cal-details-header {
+            margin-top: 22px; margin-bottom: 12px;
+            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;
+        }
+
+        .form-group { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; width: 100%; }
+        .form-group:last-child { margin-bottom: 0; }
+        label { font-size: 0.82rem; font-weight: 700; color: var(--text-muted); }
+        input, select, textarea {
+            background: var(--bg-card); border: 1px solid rgba(128,128,128,0.15);
+            color: var(--text-main); padding: 12px 14px; border-radius: 12px; outline: none; font-size: 0.98rem; width: 100%;
+            transition: border-color 0.2s ease;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+
+        .auto-expand-textarea { resize: none; overflow-y: hidden; min-height: 48px; line-height: 1.4; font-family: inherit; }
+        .notes-card-container { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
+        .notes-card-container textarea { resize: vertical; min-height: 140px; font-family: inherit; width: 100%; margin: 0 auto; display: block; }
+
+        .priority-chips { display: flex; gap: 8px; }
+        .priority-chip {
+            flex: 1; padding: 10px 6px; border-radius: 12px; text-align: center; font-size: 0.82rem;
+            font-weight: 700; cursor: pointer; border: 2px solid transparent; color: #ffffff;
+            opacity: 0.55; transition: opacity 0.15s, transform 0.1s;
+        }
+        .priority-chip.selected { opacity: 1; border-color: rgba(255,255,255,0.8); }
+        .priority-chip:active { transform: scale(0.95); }
+        .chip-low { background: var(--color-low); }
+        .chip-medium { background: var(--color-medium); }
+        .chip-high { background: var(--color-high); }
+
+        .category-filter-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
+        .category-chip {
+            padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;
+            background: var(--bg-input); border: 1px solid rgba(128,128,128,0.15); color: var(--text-muted);
+            cursor: pointer; white-space: nowrap; transition: all 0.15s ease;
+        }
+        .category-chip.active { background: var(--accent); color: #ffffff; border-color: var(--accent); }
+
+        .btn {
+            padding: 13px; border-radius: 14px; border: none; font-weight: 800;
+            font-size: 0.98rem; cursor: pointer; text-align: center; width: 100%; transition: transform 0.1s ease, background-color 0.15s ease;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: var(--accent); color: #ffffff; }
+        .btn-event { background: var(--color-event); color: #020617; }
+        .btn-task { background: var(--color-task); color: #020617; }
+        .btn-secondary { background: transparent; color: var(--text-muted); border: 1px solid rgba(128,128,128,0.2); }
+        .btn-small { padding: 8px 12px; font-size: 0.85rem; border-radius: 10px; width: auto; }
+        .btn-reminder {
+            background: rgba(229, 147, 74, 0.12); color: var(--accent); border: 1px solid var(--accent);
+            padding: 4px 8px; font-size: 0.78rem; border-radius: 8px; cursor: pointer; margin-left: auto; font-weight: 700; flex-shrink: 0;
+        }
+
+        .ia-toolbar { display: flex; gap: 6px; margin-top: 10px; width: 100%; flex-wrap: wrap; }
+        .btn-ia {
+            flex: 1; min-width: 90px; background: var(--bg-card); border: 1px solid var(--accent);
+            color: var(--accent); padding: 8px; border-radius: 12px; font-size: 0.78rem;
+            font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer;
+        }
+        .btn-ia:active { transform: scale(0.95); }
+        .btn-ia.recording { background: #e54d42; color: #ffffff; border-color: #e54d42; animation: pulse 1s infinite; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .theme-selector-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; width: 100%; }
+        .theme-card-btn {
+            background: var(--bg-card); border: 2px solid rgba(128,128,128,0.15);
+            border-radius: 14px; padding: 10px 4px; display: flex; flex-direction: column;
+            align-items: center; gap: 6px; cursor: pointer; transition: transform 0.1s, border-color 0.2s;
+        }
+        .theme-card-btn.active { border-color: var(--accent); background: var(--bg-input); }
+        .theme-card-btn:active { transform: scale(0.95); }
+        .theme-color-preview { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
+        .theme-card-label { font-size: 0.78rem; font-weight: 700; color: var(--text-main); text-align: center; }
+
+        .settings-section { margin-bottom: 20px; }
+        .settings-row {
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
+            padding: 10px 0; border-bottom: 1px solid rgba(128,128,128,0.08);
+        }
+
+        .event-card {
+            background: var(--bg-input); padding: 14px 16px; border-radius: 16px; margin-bottom: 10px;
+            display: flex; align-items: flex-start; gap: 12px; border: 1px solid rgba(128,128,128,0.08);
+            transition: opacity 0.2s ease;
+        }
+        .event-card.done { opacity: 0.5; }
+        .event-card.done .event-title-txt { text-decoration: line-through; }
+
+        .event-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+        .event-info { flex: 1; min-width: 0; }
+        .event-time { font-size: 0.78rem; color: var(--accent); font-weight: 700; display: flex; align-items: center; }
+        .event-title-txt { font-size: 0.98rem; font-weight: 600; margin-top: 1px; }
+        .event-desc-txt { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+        .event-del { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.05rem; padding: 2px 4px; flex-shrink: 0; }
+
+        .todo-item {
+            background: var(--bg-input); padding: 12px 14px; border-radius: 16px; margin-bottom: 10px;
+            border: 1px solid rgba(128,128,128,0.08); transition: opacity 0.2s ease; width: 100%;
+        }
+        .todo-main-row { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; font-size: 0.98rem; width: 100%; }
+        .todo-checkbox { width: 20px; height: 20px; flex-shrink: 0; cursor: pointer; accent-color: var(--accent); }
+        .todo-text-span { flex: 1; min-width: 0; word-break: break-word; white-space: normal; line-height: 1.35; font-weight: 500; }
+        .todo-item.done { opacity: 0.5; }
+        .todo-item.done .todo-text-span { text-decoration: line-through; }
+        
+        .subtasks-container { margin-top: 8px; padding-left: 28px; display: flex; flex-direction: column; gap: 4px; }
+        .subtask-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-muted); }
+        .subtask-item.done { text-decoration: line-through; opacity: 0.5; }
+
+        #map-modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            z-index: 9999; padding: 20px; flex-direction: column; justify-content: center; align-items: center;
+        }
+        #map-container-box {
+            width: 100%; max-width: 440px; height: 380px; border-radius: 20px; overflow: hidden;
+            border: 2px solid var(--accent); margin-bottom: 12px; position: relative;
+        }
+        #map { width: 100%; height: 100%; }
+
+        .map-gps-btn {
+            position: absolute; bottom: 12px; right: 12px; z-index: 1000;
+            background: var(--bg-card); border: 1px solid var(--accent); color: var(--text-main);
+            padding: 8px 12px; border-radius: 10px; font-size: 0.82rem; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        .chart-box { display: flex; justify-content: center; align-items: center; margin: 16px 0; width: 100%; }
+        .version-tag { text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 12px; }
+
+        .profile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 14px; }
+        
+        .profile-card {
+            background: var(--bg-card); border: 2px solid rgba(128,128,128,0.15);
+            border-radius: 18px; padding: 14px; display: flex; flex-direction: column;
+            align-items: center; gap: 8px; text-align: center; cursor: pointer; position: relative;
+            transition: transform 0.1s, border-color 0.2s;
+        }
+        .profile-card:active { transform: scale(0.95); }
+        .profile-card.active { border-color: var(--accent); background: var(--bg-input); }
+        .profile-icon { font-size: 2rem; }
+        .profile-title { font-size: 0.95rem; font-weight: 800; color: var(--text-main); }
+        .profile-desc { font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; }
+        
+        .profile-color-badge {
+            display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
+            border-radius: 12px; font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+        }
+
+        #tutorial-modal, #reminder-prompt-modal, #task-modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+            z-index: 10000; padding: 20px; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .modal-box-card {
+            background: var(--bg-card); border: 2px solid var(--accent); border-radius: 24px;
+            padding: 20px; width: 100%; max-width: 420px; text-align: left; color: var(--text-main);
+            max-height: 90vh; overflow-y: auto;
+        }
+        .tutorial-step-icon { font-size: 3rem; margin-bottom: 12px; text-align: center; }
+        .tutorial-step-title { font-size: 1.2rem; font-weight: 800; color: var(--accent); margin-bottom: 8px; text-align: center; }
+        .tutorial-step-desc { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px; text-align: center; }
+        .tutorial-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+    </style>
+</head>
+<body class="theme-cafe" onclick="unlockAudioContext();">
+
+    <div class="app-container">
+
+        <!-- CABECERA SUPERIOR GLOBAL -->
+        <div class="top-bar">
+            <h1>TaskMaster Pro</h1>
+            <div class="top-bar-actions">
+                <button class="icon-btn" id="btn-global-mic" onclick="triggerHaptic(); toggleGlobalVoiceAssistant();" title="Dictado Inteligente IA">🎙️</button>
+                <button class="icon-btn" onclick="triggerHaptic(); openTutorialModal(0);" title="Guía de uso">📖</button>
+                <button class="icon-btn" onclick="triggerHaptic(); openSettingsScreen();" title="Ajustes">⚙️</button>
+            </div>
+        </div>
+
+        <!-- BUSCADOR GLOBAL INTELIGENTE -->
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="globalSearchInput" placeholder="Buscar tarea, evento o nota..." oninput="handleGlobalSearch(this.value)">
+        </div>
+
+        <div id="permission-banner" class="status-banner" style="display:none;" onclick="triggerHaptic(); requestPermissions();">
+            Toca aquí para activar notificaciones y avisos en segundo plano
+        </div>
+
+        <!-- RESULTADOS DE BÚSQUEDA GLOBAL -->
+        <div id="search-results-box" class="card" style="display:none;">
+            <div class="card-title title-event">🔎 Resultados Encontrados</div>
+            <div id="search-results-list"></div>
+        </div>
+
+        <!-- 0. PANTALLA BIENVENIDA / SELECCIÓN DE PERFIL CON COLORES VINCULADOS -->
+        <div id="screen-welcome" class="screen">
+            <div style="text-align: center; margin-top: 10px; margin-bottom: 16px;">
+                <h2 style="font-size: 1.45rem; color: var(--accent);">¡Bienvenido a TaskMaster!</h2>
+                <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 6px;">
+                    Elige tu perfil. Cada uno incluye su paleta de colores distintiva asignada:
+                </p>
+            </div>
+
+            <div class="profile-grid">
+                <div class="profile-card" style="border-color: #0284c7;" onclick="selectUserProfile('student')">
+                    <span class="profile-icon">🎓</span>
+                    <span class="profile-title">Estudiante</span>
+                    <span class="profile-color-badge" style="background:#0284c7; color:#fff;">Tema Cielo</span>
+                    <span class="profile-desc">Exámenes, entregas, clases y campus.</span>
+                </div>
+                <div class="profile-card" style="border-color: #2e7d32;" onclick="selectUserProfile('health')">
+                    <span class="profile-icon">🏥</span>
+                    <span class="profile-title">Salud / Médico</span>
+                    <span class="profile-color-badge" style="background:#2e7d32; color:#fff;">Tema Menta</span>
+                    <span class="profile-desc">Guardias, citas, pacientes y centro médico.</span>
+                </div>
+                <div class="profile-card" style="border-color: #d97724;" onclick="selectUserProfile('store')">
+                    <span class="profile-icon">🏪</span>
+                    <span class="profile-title">Comercio</span>
+                    <span class="profile-color-badge" style="background:#d97724; color:#fff;">Tema Cream</span>
+                    <span class="profile-desc">Inventario, proveedores, pedidos y tienda.</span>
+                </div>
+                <div class="profile-card" style="border-color: #e5934a;" onclick="selectUserProfile('transport')">
+                    <span class="profile-icon">🚍</span>
+                    <span class="profile-title">Transporte</span>
+                    <span class="profile-color-badge" style="background:#e5934a; color:#fff;">Tema Café</span>
+                    <span class="profile-desc">Turnos, rutas, vehículo y cochera.</span>
+                </div>
+            </div>
+            
+            <div style="margin-top: 16px;">
+                <div class="profile-card" style="width: 100%; flex-direction: row; justify-content: center; border-color: #a0a0a0;" onclick="selectUserProfile('general')">
+                    <span class="profile-icon" style="font-size:1.5rem;">💼</span>
+                    <div style="text-align: left;">
+                        <span class="profile-title">General / Personal</span>
+                        <span class="profile-color-badge" style="background:#a0a0a0; color:#fff; display:inline-block; margin-left:6px;">Tema Gris</span>
+                        <div class="profile-desc">Uso universal para cualquier tarea o evento personal.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1. PESTAÑA CALENDARIO -->
+        <div id="tab-calendar" class="screen active">
+            <div class="calendar-header">
+                <button class="nav-btn" onclick="triggerHaptic(); changeMonth(-1);">◀</button>
+                <h2 id="calendar-month-year" style="margin:0; color: var(--text-main); font-size: 1.2rem; text-align: center; min-width: 150px;">Septiembre 2026</h2>
+                <button class="nav-btn" onclick="triggerHaptic(); changeMonth(1);">▶</button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+
+            <div class="cal-details-header">
+                <span style="font-size: 0.95rem; font-weight: 800;">Detalles del día (<span id="cal-selected-date-label">Hoy</span>)</span>
+                <button class="btn btn-primary btn-small" onclick="triggerHaptic(); openDayModalForSelectedDate();">➕ Nuevo Evento</button>
+            </div>
+            <div id="cal-selected-events-list"></div>
+        </div>
+
+        <!-- 2. PESTAÑA TAREAS -->
+        <div id="tab-tasks" class="screen">
+            <div class="week-bar" id="week-bar"></div>
+
+            <div class="category-filter-bar">
+                <div class="category-chip active" onclick="filterTaskCategory('all', this)">Todas</div>
+                <div class="category-chip" onclick="filterTaskCategory('trabajo', this)">💼 Trabajo</div>
+                <div class="category-chip" onclick="filterTaskCategory('personal', this)">🏠 Personal</div>
+                <div class="category-chip" onclick="filterTaskCategory('urgente', this)">🔥 Urgente</div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span>Progreso del Día</span>
+                    <span id="progress-percent-txt">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <button class="btn btn-secondary btn-small" style="flex:1;" onclick="triggerHaptic(); loadPresetTemplate('rutina');">📋 Cargar Plantilla</button>
+                <button class="btn btn-secondary btn-small" style="flex:1;" onclick="triggerHaptic(); shareDaySummary();">📤 Compartir</button>
+            </div>
+
+            <div class="event-list-title">Tareas para este día</div>
+            <div id="tasks-day-list"></div>
+        </div>
+
+        <!-- 3. PESTAÑA NOTAS -->
+        <div id="tab-notes" class="screen">
+            <div class="card card-note notes-card-container">
+                <div class="card-title title-note" style="width: 100%; justify-content: space-between;">
+                    <span>🟠 Bloc de Notas (<span id="notes-date-label">Hoy</span>)</span>
+                    <button class="btn-reminder" onclick="triggerHaptic(); shareDaySummary();">📤 Compartir</button>
+                </div>
+                
+                <div class="form-group" style="width: 100%;">
+                    <textarea id="tab-day-notes" placeholder="Escribe aquí tus notas o anotaciones..." oninput="saveTabNotes()"></textarea>
+                </div>
+
+                <div class="ia-toolbar">
+                    <button class="btn-ia" id="btn-dictate-notes" onclick="triggerHaptic(); toggleDictation();">🎙️ Dictar</button>
+                    <button class="btn-ia" onclick="triggerHaptic(); formatNotesWithIA();">✨ Formato</button>
+                    <button class="btn-ia" onclick="triggerHaptic(); toggleStrikethroughNote();">✏️ Tachar</button>
+                    <button class="btn-ia" onclick="triggerHaptic(); convertNoteToAlarm();">🔔 Alarma</button>
+                    <button class="btn-ia" style="border-color:#e54d42; color:#e54d42;" onclick="triggerHaptic(); clearTabNotes();">🧹 Limpiar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. PESTAÑA RESUMEN -->
+        <div id="tab-summary" class="screen">
+            <div class="card">
+                <div class="card-title title-event">📊 Resumen Visual De Actividad</div>
+                
+                <div class="chart-box">
+                    <canvas id="summaryCanvas" width="320" height="180"></canvas>
+                </div>
+
+                <div class="card" style="background:var(--bg-card); border-color:var(--accent); margin-top:10px;">
+                    <div style="font-size:0.8rem; font-weight:bold; color:var(--accent); margin-bottom:4px;">✨ Asistente Resumen IA</div>
+                    <div id="ia-executive-summary-text" style="font-size:0.88rem; color:var(--text-main); line-height:1.4;">
+                        Analizando tu día...
+                    </div>
+                </div>
+
+                <div style="font-size: 0.92rem; line-height: 1.6; color: var(--text-main);">
+                    <p>• <strong>Perfil activo:</strong> <span id="summary-profile-name" style="color:var(--accent); font-weight:bold;">General</span></p>
+                    <p>• <strong>Tareas pendientes hoy:</strong> <span id="summary-pending-count">0</span></p>
+                    <p>• <strong>Eventos programados hoy:</strong> <span id="summary-events-count">0</span></p>
+                    <p>• <strong>Ubicaciones guardadas:</strong> <span id="summary-locs-count">0</span></p>
+                    <p style="margin-top: 6px; color: var(--color-event);">🔔 <strong>Sincronización de Avisos:</strong> <span id="firebase-cloud-status">Activa Multi-Dispositivo</span></p>
+                    <p style="margin-top: 6px; color: var(--color-low);">🛡️ <strong>Almacenamiento Local:</strong> <span id="db-protection-status">Seguro y Protegido</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANTALLA SECUNDARIA: FORMULARIO DE EVENTOS -->
+        <div id="screen-day-modal" class="screen">
+            <div class="day-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                <button class="icon-btn" onclick="triggerHaptic(); switchTab('calendar');" aria-label="Volver">←</button>
+                <div class="day-title">
+                    <div class="weekday" id="selected-weekday" style="font-size: 0.85rem; color: var(--text-muted); font-weight: bold;">Día</div>
+                    <div class="datestr" id="selected-date-title" style="font-size: 1.15rem; font-weight: 800; color: var(--accent);">--</div>
+                </div>
+            </div>
+
+            <div class="card card-event">
+                <div class="card-title title-event">🔵 Nuevo Evento / Cita de Agenda</div>
+                
+                <div class="form-group">
+                    <label>Título / Asunto de la Cita</label>
+                    <input type="text" id="eventTitle" placeholder="Ej. Cita médica / Reunión de trabajo...">
+                </div>
+
+                <div class="form-group">
+                    <label>Hora Exacta de Alarma (Obligatoria)</label>
+                    <input type="time" id="eventTime">
+                </div>
+
+                <div class="form-group">
+                    <label>Detalles / Aclaraciones del Evento</label>
+                    <textarea id="eventDesc" placeholder="Lugar, persona de contacto, notas de la cita..." style="min-height: 80px;"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Nivel de Prioridad en Agenda</label>
+                    <div class="priority-chips" id="priority-chips">
+                        <div class="priority-chip chip-low selected" data-value="low" onclick="triggerHaptic(); selectPriority(this);">Baja</div>
+                        <div class="priority-chip chip-medium" data-value="medium" onclick="triggerHaptic(); selectPriority(this);">Media</div>
+                        <div class="priority-chip chip-high" data-value="high" onclick="triggerHaptic(); selectPriority(this);">Alta</div>
+                    </div>
+                </div>
+
+                <button class="btn btn-event" style="margin-top: 10px;" onclick="triggerHaptic(); saveEventFromCalModal();">Guardar Evento en Agenda</button>
+            </div>
+        </div>
+
+        <!-- PANTALLA SECUNDARIA: AJUSTES -->
+        <div id="screen-settings" class="screen">
+            <div class="day-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                <button class="icon-btn" onclick="triggerHaptic(); switchTab('calendar');" aria-label="Volver">←</button>
+                <div class="day-title"><div class="datestr" style="font-size: 1.15rem; font-weight: 800;">Ajustes & Configuración</div></div>
+            </div>
+
+            <div class="settings-section card">
+                <div class="card-title title-event">🧪 Efecto Visual De Pantalla</div>
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:700; font-size:0.9rem;">Efecto Cristal Translúcido</div>
+                        <div style="font-size:0.78rem; color:var(--text-muted);">Aspecto esmerilado con fondo transparente</div>
+                    </div>
+                    <select id="glass-effect-select" style="width: 120px; padding: 6px;" onchange="toggleGlassMode(this.value)">
+                        <option value="off">Clásico</option>
+                        <option value="on">Cristal 🧪</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="settings-section card">
+                <div class="card-title title-note">☕ Apoyar al Proyecto</div>
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:700; font-size:0.9rem;">¿Te gusta TaskMaster?</div>
+                        <div style="font-size:0.78rem; color:var(--text-muted);">Invítame a un café para apoyar las mejoras</div>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn btn-primary btn-small" onclick="triggerHaptic(); openContributionLink('paypal');">PayPal</button>
+                        <button class="btn btn-primary btn-small" style="background:#0075ff;" onclick="triggerHaptic(); openContributionLink('revolut');">Revolut</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section card">
+                <div class="card-title title-task">👤 Perfil De Uso</div>
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:700; font-size:0.9rem;" id="settings-profile-label">Perfil Actual: General</div>
+                        <div style="font-size:0.78rem; color:var(--text-muted);">Cambia los ejemplos y sugerencias</div>
+                    </div>
+                    <button class="btn btn-primary btn-small" onclick="triggerHaptic(); openWelcomeScreen();">Cambiar</button>
+                </div>
+            </div>
+
+            <div class="settings-section card">
+                <div class="card-title title-note">🎨 Colores Del Tema</div>
+                <div class="theme-selector-grid">
+                    <div class="theme-card-btn active" data-theme="cafe" onclick="triggerHaptic(); setTheme('cafe', this);">
+                        <div class="theme-color-preview" style="background:#2b1810; border-color:#df9a57;"></div>
+                        <span class="theme-card-label">Café</span>
+                    </div>
+                    <div class="theme-card-btn" data-theme="gris" onclick="triggerHaptic(); setTheme('gris', this);">
+                        <div class="theme-color-preview" style="background:#1a1a1a; border-color:#909090;"></div>
+                        <span class="theme-card-label">Gris</span>
+                    </div>
+                    <div class="theme-card-btn" data-theme="marino" onclick="triggerHaptic(); setTheme('marino', this);">
+                        <div class="theme-color-preview" style="background:#0f172a; border-color:#38bdf8;"></div>
+                        <span class="theme-card-label">Marino</span>
+                    </div>
+                    <div class="theme-card-btn" data-theme="cream" onclick="triggerHaptic(); setTheme('cream', this);">
+                        <div class="theme-color-preview" style="background:#f4efea; border-color:#d97724;"></div>
+                        <span class="theme-card-label">Cream</span>
+                    </div>
+                    <div class="theme-card-btn" data-theme="menta" onclick="triggerHaptic(); setTheme('menta', this);">
+                        <div class="theme-color-preview" style="background:#e8f5e9; border-color:#2e7d32;"></div>
+                        <span class="theme-card-label">Menta</span>
+                    </div>
+                    <div class="theme-card-btn" data-theme="cielo" onclick="triggerHaptic(); setTheme('cielo', this);">
+                        <div class="theme-color-preview" style="background:#e0f2fe; border-color:#0284c7;"></div>
+                        <span class="theme-card-label">Cielo</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section card">
+                <div class="card-title title-event">📍 Lugares Frecuentes Guardados</div>
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:700; font-size:0.9rem;" id="lbl-setting-cochera">Mi Base / Central</div>
+                        <div id="cochera-status" style="font-size:0.78rem; color:var(--text-muted);">Sin guardar</div>
+                    </div>
+                    <button class="btn btn-primary btn-small" onclick="triggerHaptic(); openMapPicker('central');">Mapa</button>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:700; font-size:0.9rem;">Mi Casa</div>
+                        <div id="casa-status" style="font-size:0.78rem; color:var(--text-muted);">Sin guardar</div>
+                    </div>
+                    <button class="btn btn-primary btn-small" onclick="triggerHaptic(); openMapPicker('casa');">Mapa</button>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:700; font-size:0.9rem;" id="lbl-setting-punto-a">Mi Punto A (Personalizado)</div>
+                        <div id="punto-a-status" style="font-size:0.78rem; color:var(--text-muted);">Sin guardar</div>
+                    </div>
+                    <button class="btn btn-primary btn-small" onclick="triggerHaptic(); openMapPicker('punto_a');">Mapa</button>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:700; font-size:0.9rem;" id="lbl-setting-punto-b">Mi Punto B (Personalizado)</div>
+                        <div id="punto-b-status" style="font-size:0.78rem; color:var(--text-muted);">Sin guardar</div>
+                    </div>
+                    <button class="btn btn-primary btn-small" onclick="triggerHaptic(); openMapPicker('punto_b');">Mapa</button>
+                </div>
+            </div>
+
+            <div class="settings-section card">
+                <div class="card-title title-task">🔔 Sonidos & Avisos</div>
+                <div class="settings-row">
+                    <div><div style="font-weight:700; font-size:0.9rem;">Tono de Alarma</div></div>
+                    <select id="sound-type-select" style="width: 140px; padding: 6px;" onchange="updateSoundType(this.value)">
+                        <option value="classic">Pitido Clásico</option>
+                        <option value="harmonic">Tono Armónico</option>
+                        <option value="double">Doble Pulso</option>
+                    </select>
+                </div>
+                <div class="settings-row">
+                    <div><div style="font-weight:700; font-size:0.9rem;">Probar Sonido Ahora</div></div>
+                    <button class="btn btn-primary btn-small" onclick="triggerHaptic(); playAlertSound();">🔊 Probar Tono</button>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <div style="font-weight:700; font-size:0.9rem;">Sincronización Push & Permisos</div>
+                        <div id="notif-status" style="font-size:0.78rem; color:var(--text-muted);">Comprobando…</div>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="btn-activate-notif" onclick="triggerHaptic(); requestPermissions();">Activar</button>
+                </div>
+            </div>
+
+            <!-- EMBLEMA Y SELLO DISIMULADO REDUCIDO MB -->
+            <div style="text-align: center; padding: 10px 0 4px 0; opacity: 0.85;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="38" height="38">
+                  <defs>
+                    <linearGradient id="mbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="var(--accent, #e5934a)" />
+                      <stop offset="100%" stop-color="var(--text-main, #ffffff)" stop-opacity="0.8" />
+                    </linearGradient>
+                  </defs>
+                  <polygon points="100,10 178,55 178,145 100,190 22,145 22,55" fill="none" stroke="url(#mbGrad)" stroke-width="8" stroke-linejoin="round"/>
+                  <path d="M 52,145 V 55 L 82,105 L 112,55 V 145 M 112,55 H 145 C 160,55 160,90 145,90 H 112 H 148 C 165,90 165,145 148,145 H 112" fill="none" stroke="url(#mbGrad)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+                  <text x="100" y="172" font-family="-apple-system, sans-serif" font-size="10" font-weight="700" letter-spacing="2" fill="var(--text-muted, #b8a398)" text-anchor="middle" opacity="0.85">medbasha</text>
+                </svg>
+                <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 1px; font-weight: 600;">medbasha</div>
+            </div>
+
+            <div class="version-tag" id="version-tag"></div>
+        </div>
+
+        <button class="fab-btn" id="fab-main-btn" onclick="triggerHaptic(); handleFabClick();">+</button>
+
+        <div class="bottom-nav">
+            <button class="nav-item active" id="nav-calendar" onclick="triggerHaptic(); switchTab('calendar');">
+                <span class="nav-icon">📅</span>
+                <span>Calendario</span>
+            </button>
+            <button class="nav-item" id="nav-tasks" onclick="triggerHaptic(); switchTab('tasks');">
+                <span class="nav-icon">🟢</span>
+                <span>Tareas</span>
+            </button>
+            <button class="nav-item" id="nav-notes" onclick="triggerHaptic(); switchTab('notes');">
+                <span class="nav-icon">🟠</span>
+                <span>Notas</span>
+            </button>
+            <button class="nav-item" id="nav-summary" onclick="triggerHaptic(); switchTab('summary');">
+                <span class="nav-icon">📊</span>
+                <span>Resumen</span>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- MODAL MAPA VISUAL INTERACTIVO -->
+    <div id="map-modal">
+        <div style="color:white; margin-bottom: 8px; font-weight: bold; font-size: 0.95rem; text-align: center;">
+            Toca en el mapa para fijar la ubicación:
+        </div>
+        <div id="map-container-box">
+            <div id="map"></div>
+            <button class="map-gps-btn" onclick="triggerHaptic(); centerMapOnUserGPS();">🎯 Mi Ubicación GPS</button>
+        </div>
+        <div style="display: flex; gap: 10px; width: 100%; max-width: 440px;">
+            <button class="btn btn-primary" onclick="triggerHaptic(); confirmMapLocation();">Confirmar esta Ubicación</button>
+            <button class="btn btn-secondary" onclick="triggerHaptic(); closeMapPicker();">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE NUEVA TAREA FLOTANTE DESPEJADA -->
+    <div id="task-modal">
+        <div class="modal-box-card card-task">
+            <div class="card-title title-task" style="justify-content: space-between;">
+                <span>🟢 Nueva Tarea Pro</span>
+                <button class="event-del" onclick="closeTaskModal();">✕</button>
+            </div>
+            
+            <div class="form-group">
+                <label>Nombre de la Tarea</label>
+                <textarea id="taskInputText" class="auto-expand-textarea" rows="1" placeholder="Ej. Tarea pendiente..." oninput="autoExpandTextarea(this)"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Categoría / Etiqueta</label>
+                <select id="taskCategorySelect">
+                    <option value="trabajo">💼 Trabajo / Profesional</option>
+                    <option value="personal">🏠 Personal / Casa</option>
+                    <option value="urgente">🔥 Urgente / Prioritario</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Subtareas / Pasos (Separados por coma)</label>
+                <input type="text" id="taskSubtasksInput" placeholder="Ej. Paso 1, Paso 2, Paso 3">
+            </div>
+
+            <div class="form-group">
+                <label>Recurrencia / Repetición</label>
+                <select id="taskRepeatSelect">
+                    <option value="none">Sin repetición (Una vez)</option>
+                    <option value="10m">⏱️ Cada 10 minutos</option>
+                    <option value="15m">⏱️ Cada 15 minutos</option>
+                    <option value="30m">⏱️ Cada 30 minutos</option>
+                    <option value="1h">⏱️ Cada 1 hora</option>
+                    <option value="daily">📅 Cada día</option>
+                    <option value="weekly">📅 Cada semana</option>
+                    <option value="monthly">📅 Cada mes</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Ubicación Geofencing Opcional</label>
+                <select id="taskLocSelect" onchange="handleLocSelectChange(this.value)">
+                    <option value="none">Sin alerta de ubicación</option>
+                    <option value="custom_map">📍 Elegir punto libre en el mapa...</option>
+                    <option value="central" id="opt-loc-central">Mi Base / Central</option>
+                    <option value="casa">Mi Casa</option>
+                    <option value="punto_a" id="opt-loc-punto-a">📍 Mi Punto A</option>
+                    <option value="punto_b" id="opt-loc-punto-b">📍 Mi Punto B</option>
+                    <option value="gasolinera">⛽ Gasolinera / Repostaje</option>
+                    <option value="super">Cualquier Supermercado</option>
+                </select>
+                <div id="event-custom-coord-status" style="font-size: 0.8rem; color: var(--color-event); display: none; margin-top: 4px;">
+                    📍 Punto personalizado seleccionado
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Hora opcional de aviso</label>
+                <input type="time" id="taskTimeInput">
+            </div>
+
+            <button class="btn btn-task" style="margin-top: 10px;" onclick="triggerHaptic(); handleSaveTaskClick();">✓ Guardar Tarea</button>
+        </div>
+    </div>
+
+    <!-- MODAL OVERLAY TUTORIAL INTERACTIVO -->
+    <div id="tutorial-modal">
+        <div class="modal-box-card">
+            <div class="tutorial-step-icon" id="tut-icon">🎭</div>
+            <div class="tutorial-step-title" id="tut-title">Perfil Adaptativo</div>
+            <div class="tutorial-step-desc" id="tut-desc">
+                Adapta el lenguaje, ejemplos y lugares según seas Estudiante, Médico, Comerciante, Transportista o Personal.
+            </div>
+            <div class="tutorial-nav">
+                <button class="btn btn-secondary btn-small" onclick="triggerHaptic(); moveTutorialStep(-1);" id="tut-prev-btn">Anterior</button>
+                <span style="font-size:0.8rem; font-weight:bold; color:var(--text-muted);" id="tut-counter">1 / 4</span>
+                <button class="btn btn-primary btn-small" onclick="triggerHaptic(); moveTutorialStep(1);" id="tut-next-btn">Siguiente</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL INTERACTIVO CONSULTA RECORDATORIO -->
+    <div id="reminder-prompt-modal">
+        <div class="modal-box-card" style="text-align: center;">
+            <div class="tutorial-step-icon">⏰</div>
+            <div class="tutorial-step-title">¿Añadir Recordatorio?</div>
+            <div class="tutorial-step-desc">
+                Has guardado esta tarea sin hora. ¿Quieres ponerle una hora exacta para que te avise?
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;">
+                <button class="btn btn-primary" onclick="triggerHaptic(); promptAddReminderTime();">⏰ Añadir Hora</button>
+                <button class="btn btn-secondary" onclick="triggerHaptic(); promptSaveWithoutReminder();">✓ Solo Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="./app.js"></script>
+</body>
+</html>
