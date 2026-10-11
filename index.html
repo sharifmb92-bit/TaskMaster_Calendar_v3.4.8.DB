@@ -100,7 +100,6 @@
             .app-container { border-radius: 28px; min-height: 92vh; max-height: 95vh; }
         }
 
-        /* MEJORA EN EL CONTRASTE DEL GLASSMORPHISM */
         body.glass-active .card,
         body.glass-active .app-container,
         body.glass-active .todo-item,
@@ -203,18 +202,17 @@
         .week-day-chip.active .day-name, .week-day-chip.active .day-num { color: #ffffff; }
         .week-day-chip.today-highlight:not(.active) { border: 1px solid var(--accent); }
 
-        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 8px; }
         .nav-btn {
             background: var(--bg-input); border: 1px solid rgba(128,128,128,0.12);
             color: var(--text-main); font-size: 1.15rem; width: 38px; height: 38px;
-            border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
         .nav-btn:active { transform: scale(0.9); }
 
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
         .calendar-day-name { font-size: 0.78rem; color: var(--text-muted); font-weight: bold; padding-bottom: 6px; }
 
-        /* CELDAS DEL CALENDARIO REAJUSTADAS PARA MEJOR LECTURA */
         .calendar-cell {
             background: var(--bg-input); aspect-ratio: 1; border-radius: 12px;
             display: flex; flex-direction: column; justify-content: flex-start; align-items: center;
@@ -225,7 +223,6 @@
         .calendar-cell:not(.empty):active { transform: scale(0.92); }
         .calendar-cell.today { border: 2px solid var(--accent); }
 
-        /* INDICADORES DE EVENTO FINOS Y LIMPIOS */
         .indicator-bar-container {
             position: absolute; bottom: 3px; left: 4px; right: 4px;
             display: flex; gap: 2px; height: 2px; border-radius: 2px; overflow: hidden;
@@ -271,7 +268,17 @@
 
         .auto-expand-textarea { resize: none; overflow-y: hidden; min-height: 48px; line-height: 1.4; font-family: inherit; }
         .notes-card-container { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
-        .notes-card-container textarea { resize: vertical; min-height: 140px; font-family: inherit; width: 100%; margin: 0 auto; display: block; }
+        
+        .notes-editable-area {
+            background: var(--bg-card); border: 1px solid rgba(128,128,128,0.15);
+            color: var(--text-main); padding: 14px; border-radius: 12px; outline: none;
+            font-size: 0.98rem; width: 100%; min-height: 160px; font-family: inherit;
+            line-height: 1.5; white-space: pre-wrap; overflow-y: auto;
+        }
+        .notes-editable-area:focus { border-color: var(--accent); }
+        .notes-editable-area strike, .notes-editable-area s, .notes-editable-area del, .note-strike-txt {
+            text-decoration: line-through !important; opacity: 0.65; color: var(--text-muted);
+        }
 
         .priority-chips { display: flex; gap: 8px; }
         .priority-chip {
@@ -449,49 +456,50 @@
             <div id="search-results-list"></div>
         </div>
 
-        <!-- 0. PANTALLA BIENVENIDA / SELECCIÓN DE PERFIL CON COLORES VINCULADOS -->
+        <!-- 0. PANTALLA SELECCIÓN DE ÁMBITO Y PILARES VITALES (4 CUADROS + TARJETA INFERIOR) -->
         <div id="screen-welcome" class="screen">
             <div style="text-align: center; margin-top: 10px; margin-bottom: 16px;">
-                <h2 style="font-size: 1.45rem; color: var(--accent);">¡Bienvenido a TaskMaster!</h2>
+                <h2 style="font-size: 1.45rem; color: var(--accent);">Gestión Integral del Día</h2>
                 <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 6px;">
-                    Elige tu perfil. Cada uno incluye su paleta de colores distintiva asignada:
+                    Selecciona el ámbito de vida o pilar para organizar tus actividades:
                 </p>
             </div>
 
             <div class="profile-grid">
-                <div class="profile-card" style="border-color: #0284c7;" onclick="selectUserProfile('student')">
-                    <span class="profile-icon">🎓</span>
-                    <span class="profile-title">Estudiante</span>
-                    <span class="profile-color-badge" style="background:#0284c7; color:#fff;">Tema Cielo</span>
-                    <span class="profile-desc">Exámenes, entregas, clases y campus.</span>
+                <div class="profile-card" style="border-color: #a0a0a0;" onclick="selectUserProfile('personal')">
+                    <span class="profile-icon">🏠</span>
+                    <span class="profile-title">Personal</span>
+                    <span class="profile-color-badge" style="background:#a0a0a0; color:#fff;">Estilo de Vida</span>
+                    <span class="profile-desc">Compras, casa, eventos personales y tiempo libre.</span>
                 </div>
-                <div class="profile-card" style="border-color: #2e7d32;" onclick="selectUserProfile('health')">
-                    <span class="profile-icon">🏥</span>
-                    <span class="profile-title">Salud / Médico</span>
-                    <span class="profile-color-badge" style="background:#2e7d32; color:#fff;">Tema Menta</span>
-                    <span class="profile-desc">Guardias, citas, pacientes y centro médico.</span>
+                <div class="profile-card" style="border-color: #38bdf8;" onclick="selectUserProfile('trabajo')">
+                    <span class="profile-icon">💼</span>
+                    <span class="profile-title">Trabajo</span>
+                    <span class="profile-color-badge" style="background:#38bdf8; color:#fff;">Proyectos</span>
+                    <span class="profile-desc">Tareas profesionales, reuniones y entregas.</span>
                 </div>
-                <div class="profile-card" style="border-color: #d97724;" onclick="selectUserProfile('store')">
-                    <span class="profile-icon">🏪</span>
-                    <span class="profile-title">Comercio</span>
-                    <span class="profile-color-badge" style="background:#d97724; color:#fff;">Tema Cream</span>
-                    <span class="profile-desc">Inventario, proveedores, pedidos y tienda.</span>
+                <div class="profile-card" style="border-color: #2e7d32;" onclick="selectUserProfile('salud')">
+                    <span class="profile-icon">❤️</span>
+                    <span class="profile-title">Salud</span>
+                    <span class="profile-color-badge" style="background:#2e7d32; color:#fff;">Bienestar</span>
+                    <span class="profile-desc">Citas médicas, agua, ejercicio y hábitos.</span>
                 </div>
-                <div class="profile-card" style="border-color: #e5934a;" onclick="selectUserProfile('transport')">
-                    <span class="profile-icon">🚍</span>
-                    <span class="profile-title">Transporte</span>
-                    <span class="profile-color-badge" style="background:#e5934a; color:#fff;">Tema Café</span>
-                    <span class="profile-desc">Turnos, rutas, vehículo y cochera.</span>
+                <div class="profile-card" style="border-color: #d97724;" onclick="selectUserProfile('finanzas')">
+                    <span class="profile-icon">💳</span>
+                    <span class="profile-title">Finanzas</span>
+                    <span class="profile-color-badge" style="background:#d97724; color:#fff;">Gastos</span>
+                    <span class="profile-desc">Presupuestos, recibos, pagos y facturas.</span>
                 </div>
             </div>
             
+            <!-- TARJETA INFERIOR RECTANGULAR: PRIORIDAD URGENTE -->
             <div style="margin-top: 16px;">
-                <div class="profile-card" style="width: 100%; flex-direction: row; justify-content: center; border-color: #a0a0a0;" onclick="selectUserProfile('general')">
-                    <span class="profile-icon" style="font-size:1.5rem;">💼</span>
+                <div class="profile-card" style="width: 100%; flex-direction: row; justify-content: center; border-color: #e54d42; background: rgba(229, 77, 66, 0.08);" onclick="selectUserProfile('urgente')">
+                    <span class="profile-icon" style="font-size:1.6rem; color:#e54d42;">🚨</span>
                     <div style="text-align: left;">
-                        <span class="profile-title">General / Personal</span>
-                        <span class="profile-color-badge" style="background:#a0a0a0; color:#fff; display:inline-block; margin-left:6px;">Tema Gris</span>
-                        <div class="profile-desc">Uso universal para cualquier tarea o evento personal.</div>
+                        <span class="profile-title" style="color:#e54d42;">Urgente e Importante (Hacer Ya)</span>
+                        <span class="profile-color-badge" style="background:#e54d42; color:#fff; display:inline-block; margin-left:6px;">Prioridad Alta</span>
+                        <div class="profile-desc">Crisis, fechas límite inmediatas y problemas que resolver hoy.</div>
                     </div>
                 </div>
             </div>
@@ -501,7 +509,8 @@
         <div id="tab-calendar" class="screen active">
             <div class="calendar-header">
                 <button class="nav-btn" onclick="triggerHaptic(); changeMonth(-1);">◀</button>
-                <h2 id="calendar-month-year" style="margin:0; color: var(--text-main); font-size: 1.2rem; text-align: center; min-width: 150px;">Septiembre 2026</h2>
+                <h2 id="calendar-month-year" style="margin:0; color: var(--text-main); font-size: 1.1rem; text-align: center; min-width: 130px;">Septiembre 2026</h2>
+                <button class="btn btn-secondary btn-small" onclick="triggerHaptic(); goToToday();">📅 Hoy</button>
                 <button class="nav-btn" onclick="triggerHaptic(); changeMonth(1);">▶</button>
             </div>
             <div class="calendar-grid" id="calendar-grid"></div>
@@ -552,7 +561,7 @@
                 </div>
                 
                 <div class="form-group" style="width: 100%;">
-                    <textarea id="tab-day-notes" placeholder="Escribe aquí tus notas o anotaciones..." oninput="saveTabNotes()"></textarea>
+                    <div id="tab-day-notes" class="notes-editable-area" contenteditable="true" oninput="saveTabNotes()" placeholder="Escribe aquí tus notas o anotaciones..."></div>
                 </div>
 
                 <div class="ia-toolbar">
@@ -894,7 +903,7 @@
             <div class="tutorial-step-icon" id="tut-icon">🎭</div>
             <div class="tutorial-step-title" id="tut-title">Perfil Adaptativo</div>
             <div class="tutorial-step-desc" id="tut-desc">
-                Adapta el lenguaje, ejemplos y lugares según seas Estudiante, Médico, Comerciante, Transportista o Personal.
+                Adapta el lenguaje, ejemplos y lugares según el ámbito que necesites organizar.
             </div>
             <div class="tutorial-nav">
                 <button class="btn btn-secondary btn-small" onclick="triggerHaptic(); moveTutorialStep(-1);" id="tut-prev-btn">Anterior</button>
